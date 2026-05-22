@@ -1,8 +1,9 @@
+import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
 
 from storage import LOCAL_STORAGE_DIR
@@ -51,11 +52,6 @@ class ConvertSiteRequest(BaseModel):
     siteTitle: str
 
 
-class ConvertSiteResponse(BaseModel):
-    downloadUrl: str
-    expiresAt: str
-
-
 @app.post("/api/convert")
 async def convert(req: ConvertRequest) -> ConvertResponse | SiteDetectedResponse:
     try:
@@ -88,30 +84,44 @@ async def convert(req: ConvertRequest) -> ConvertResponse | SiteDetectedResponse
     return ConvertResponse(downloadUrl=download_url, expiresAt=expires_at, warning=warning)
 
 
-@app.post("/api/convert-site", response_model=ConvertSiteResponse)
+@app.post("/api/convert-site")
 async def convert_site(req: ConvertSiteRequest):
+    return StreamingResponse(
+        _stream_site_conversion(req.pages, req.siteTitle),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _stream_site_conversion(pages, site_title):
     chapters = []
-    for page in req.pages:
+    total = len(pages)
+
+    for i, page in enumerate(pages):
+        # Emit progress before processing so user sees which page is being fetched
+        yield f"data: {json.dumps({'type': 'progress', 'current': i + 1, 'total': total, 'pageTitle': page.title})}\n\n"
+
         try:
             html = await scrape_url(page.url)
             content = extract_content(html)
-            if content is None:
-                continue
-            chapters.append({"title": page.title, "html": content["html"], "base_url": page.url})
+            if content is not None:
+                chapters.append({"title": page.title, "html": content["html"], "base_url": page.url})
         except Exception:
-            continue
+            pass
 
     if not chapters:
-        raise HTTPException(status_code=400, detail="No readable content found")
+        yield f"data: {json.dumps({'type': 'error', 'detail': 'No readable content found'})}\n\n"
+        return
 
-    epub_bytes = build_site_epub(req.siteTitle, chapters)
+    epub_bytes = build_site_epub(site_title, chapters)
 
     try:
-        download_url, expires_at = upload_epub(epub_bytes, req.siteTitle)
+        download_url, expires_at = upload_epub(epub_bytes, site_title)
     except Exception:
-        raise HTTPException(status_code=500, detail="Storage error, please try again")
+        yield f"data: {json.dumps({'type': 'error', 'detail': 'Storage error, please try again'})}\n\n"
+        return
 
-    return ConvertSiteResponse(downloadUrl=download_url, expiresAt=expires_at)
+    yield f"data: {json.dumps({'type': 'done', 'downloadUrl': download_url, 'expiresAt': expires_at})}\n\n"
 
 
 @app.get("/api/files/{filename}")

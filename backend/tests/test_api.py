@@ -105,6 +105,17 @@ async def test_convert_returns_site_when_toc_detected():
     assert len(body["site"]["pages"]) == 3
 
 
+import json as _json
+
+
+def _parse_sse(text: str) -> list[dict]:
+    events = []
+    for line in text.splitlines():
+        if line.startswith("data: "):
+            events.append(_json.loads(line[6:]))
+    return events
+
+
 async def test_convert_site_success():
     with (
         patch("main.scrape_url", new_callable=AsyncMock, return_value=PAGE_HTML),
@@ -122,9 +133,36 @@ async def test_convert_site_success():
                 ],
             })
     assert response.status_code == 200
-    body = response.json()
-    assert body["downloadUrl"] == "https://r2.example.com/site.epub"
-    assert body["expiresAt"] == "2026-05-23T00:00:00Z"
+    events = _parse_sse(response.text)
+    done = next(e for e in events if e["type"] == "done")
+    assert done["downloadUrl"] == "https://r2.example.com/site.epub"
+    assert done["expiresAt"] == "2026-05-23T00:00:00Z"
+
+
+async def test_convert_site_streams_progress():
+    with (
+        patch("main.scrape_url", new_callable=AsyncMock, return_value=PAGE_HTML),
+        patch(
+            "main.upload_epub",
+            return_value=("https://r2.example.com/site.epub", "2026-05-23T00:00:00Z"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert-site", json={
+                "siteTitle": "My Course",
+                "pages": [
+                    {"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"},
+                    {"url": "https://example.com/vi/lesson-2", "title": "Lesson 2"},
+                ],
+            })
+    events = _parse_sse(response.text)
+    progress_events = [e for e in events if e["type"] == "progress"]
+    assert len(progress_events) == 2
+    assert progress_events[0]["current"] == 1
+    assert progress_events[0]["total"] == 2
+    assert progress_events[0]["pageTitle"] == "Lesson 1"
+    types = [e["type"] for e in events]
+    assert types.index("progress") < types.index("done")
 
 
 async def test_convert_site_all_pages_fail():
@@ -136,5 +174,7 @@ async def test_convert_site_all_pages_fail():
                     {"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"},
                 ],
             })
-    assert response.status_code == 400
-    assert response.json()["detail"] == "No readable content found"
+    assert response.status_code == 200
+    events = _parse_sse(response.text)
+    error = next(e for e in events if e["type"] == "error")
+    assert error["detail"] == "No readable content found"
