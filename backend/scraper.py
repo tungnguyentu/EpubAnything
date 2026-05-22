@@ -1,8 +1,13 @@
+import asyncio
+
 from playwright.async_api import async_playwright
+
+# Cap concurrent browser launches to avoid OOM under load
+_sem = asyncio.Semaphore(5)
 
 
 async def scrape_url(url: str) -> str:
-    async with async_playwright() as pw:
+    async with _sem, async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
         try:
             page = await browser.new_page()
