@@ -510,3 +510,42 @@ body {
 .site-cancel-btn:hover {
   color: var(--fg);
 }
+
+/* ── ProgressCard ──────────────────────────────────────── */
+.progress-site-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 0.2rem;
+}
+
+.progress-count {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  margin: 0 0 0.75rem;
+  font-family: var(--font-ui);
+}
+
+.progress-bar-track {
+  background: var(--bg-raised);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.progress-bar-fill {
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.progress-page-label {
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+  font-family: var(--font-ui);
+  font-style: italic;
+  margin: 0;
+}

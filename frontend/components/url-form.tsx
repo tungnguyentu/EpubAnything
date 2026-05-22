@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { ResultCard } from "./result-card"
 import { SiteConfirmCard } from "./site-confirm-card"
+import { ProgressCard } from "./progress-card"
 
 type ConvertResult = {
   downloadUrl: string
@@ -13,11 +14,13 @@ type ConvertResult = {
 type SitePage = { url: string; title: string }
 type SiteInfo = { siteTitle: string; pages: SitePage[] }
 
+type Progress = { current: number; total: number; pageTitle: string }
+
 type State =
   | { status: "idle" }
   | { status: "converting" }
   | { status: "site-detected"; site: SiteInfo }
-  | { status: "site-converting" }
+  | { status: "site-converting"; siteTitle: string; progress: Progress }
   | { status: "done"; result: ConvertResult }
   | { status: "error"; message: string }
 
@@ -60,25 +63,54 @@ export function UrlForm() {
   async function handleConfirmSite() {
     if (state.status !== "site-detected") return
     const { site } = state
-    setState({ status: "site-converting" })
 
-    try {
-      const res = await fetch("/api/convert-site", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pages: site.pages, siteTitle: site.siteTitle }),
-      })
+    setState({
+      status: "site-converting",
+      siteTitle: site.siteTitle,
+      progress: { current: 0, total: site.pages.length, pageTitle: "" },
+    })
 
-      if (!res.ok) {
-        const err = await res.json()
-        setState({ status: "error", message: err.detail || "Conversion failed" })
-        return
-      }
+    const res = await fetch("/api/convert-site", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pages: site.pages, siteTitle: site.siteTitle }),
+    })
 
-      const result: ConvertResult = await res.json()
-      setState({ status: "done", result: { ...result, warning: false } })
-    } catch {
+    if (!res.ok || !res.body) {
       setState({ status: "error", message: "Network error, please try again" })
+      return
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+
+      const chunk = decoder.decode(value, { stream: true })
+      for (const line of chunk.split("\n")) {
+        if (!line.startsWith("data: ")) continue
+        try {
+          const event = JSON.parse(line.slice(6))
+          if (event.type === "progress") {
+            setState({
+              status: "site-converting",
+              siteTitle: site.siteTitle,
+              progress: { current: event.current, total: event.total, pageTitle: event.pageTitle },
+            })
+          } else if (event.type === "done") {
+            setState({
+              status: "done",
+              result: { downloadUrl: event.downloadUrl, expiresAt: event.expiresAt, warning: false },
+            })
+          } else if (event.type === "error") {
+            setState({ status: "error", message: event.detail })
+          }
+        } catch {
+          // Ignore malformed SSE lines
+        }
+      }
     }
   }
 
@@ -131,6 +163,15 @@ export function UrlForm() {
           pages={state.site.pages}
           onConfirm={handleConfirmSite}
           onCancel={() => setState({ status: "idle" })}
+        />
+      )}
+
+      {state.status === "site-converting" && (
+        <ProgressCard
+          siteTitle={state.siteTitle}
+          current={state.progress.current}
+          total={state.progress.total}
+          pageTitle={state.progress.pageTitle}
         />
       )}
 
