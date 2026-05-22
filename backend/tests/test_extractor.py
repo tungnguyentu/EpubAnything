@@ -39,10 +39,17 @@ def test_extracts_title():
     assert "Python" in result["title"]
 
 
-def test_extracts_text():
+def test_returns_html_not_text():
     result = extract_content(RICH_HTML)
     assert result is not None
-    assert len(result["text"]) > 100
+    assert "html" in result
+    assert "text" not in result
+
+
+def test_html_contains_tags():
+    result = extract_content(RICH_HTML)
+    assert result is not None
+    assert "<p>" in result["html"] or "<div" in result["html"]
 
 
 def test_word_count_above_threshold_for_rich_content():
@@ -60,3 +67,9 @@ def test_word_count_below_threshold_for_short_content():
 def test_returns_none_for_empty_html():
     result = extract_content("<html><body></body></html>")
     assert result is None
+
+
+def test_author_is_empty_string():
+    result = extract_content(RICH_HTML)
+    assert result is not None
+    assert result["author"] == ""

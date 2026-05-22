@@ -1,19 +1,19 @@
-import trafilatura
+from readability import Document
+from bs4 import BeautifulSoup
 
 
 def extract_content(html: str) -> dict | None:
-    result = trafilatura.bare_extraction(html, include_comments=False)
-    if result is None:
-        return None
+    doc = Document(html)
+    article_html = doc.summary(html_partial=True)
 
-    text = result.get("text") or ""
+    soup = BeautifulSoup(article_html, "html.parser")
+    text = soup.get_text(separator=" ", strip=True)
     if not text.strip():
         return None
 
     return {
-        "title": result.get("title") or "Untitled",
-        "author": result.get("author") or "",
-        "date": result.get("date") or "",
-        "text": text,
+        "title": doc.title() or "Untitled",
+        "author": "",
+        "html": article_html,
         "word_count": len(text.split()),
     }
