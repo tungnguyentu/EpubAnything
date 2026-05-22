@@ -71,3 +71,70 @@ async def test_convert_storage_failure(mock_pipeline):
             response = await client.post("/api/convert", json={"url": "https://example.com"})
     assert response.status_code == 500
     assert response.json()["detail"] == "Storage error, please try again"
+
+
+SITE_HTML = """<html>
+<head><title>Learn Engineering</title></head>
+<body>
+<nav>
+  <a href="/vi/lesson-1">Lesson 1</a>
+  <a href="/vi/lesson-2">Lesson 2</a>
+  <a href="/vi/lesson-3">Lesson 3</a>
+</nav>
+<p>Welcome.</p>
+</body></html>"""
+
+PAGE_HTML = """<html><body><article>
+<h1>Lesson</h1>
+<p>Python is an interpreted language created by Guido van Rossum in 1991. It emphasizes
+readability and simplicity, making it ideal for beginners and experts alike.</p>
+<p>The language is dynamically typed and supports multiple programming paradigms. Its extensive
+standard library and third-party ecosystem make it useful for web development, data science,
+automation, and more. Community support is one of Python's greatest strengths globally.</p>
+</article></body></html>"""
+
+
+async def test_convert_returns_site_when_toc_detected():
+    with patch("main.scrape_url", new_callable=AsyncMock, return_value=SITE_HTML):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert", json={"url": "https://example.com/vi/"})
+    assert response.status_code == 200
+    body = response.json()
+    assert "site" in body
+    assert body["site"]["siteTitle"] == "Learn Engineering"
+    assert len(body["site"]["pages"]) == 3
+
+
+async def test_convert_site_success():
+    with (
+        patch("main.scrape_url", new_callable=AsyncMock, return_value=PAGE_HTML),
+        patch(
+            "main.upload_epub",
+            return_value=("https://r2.example.com/site.epub", "2026-05-23T00:00:00Z"),
+        ),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert-site", json={
+                "siteTitle": "My Course",
+                "pages": [
+                    {"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"},
+                    {"url": "https://example.com/vi/lesson-2", "title": "Lesson 2"},
+                ],
+            })
+    assert response.status_code == 200
+    body = response.json()
+    assert body["downloadUrl"] == "https://r2.example.com/site.epub"
+    assert body["expiresAt"] == "2026-05-23T00:00:00Z"
+
+
+async def test_convert_site_all_pages_fail():
+    with patch("main.scrape_url", new_callable=AsyncMock, side_effect=Exception("Timeout")):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert-site", json={
+                "siteTitle": "My Course",
+                "pages": [
+                    {"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"},
+                ],
+            })
+    assert response.status_code == 400
+    assert response.json()["detail"] == "No readable content found"

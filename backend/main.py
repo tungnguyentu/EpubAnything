@@ -6,11 +6,11 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
 
 from storage import LOCAL_STORAGE_DIR
-
 from scraper import scrape_url
 from extractor import extract_content
-from epub_builder import build_epub
+from epub_builder import build_epub, build_site_epub
 from storage import upload_epub
+from site_detector import detect_site_pages, extract_site_title
 
 app = FastAPI()
 
@@ -32,12 +32,46 @@ class ConvertResponse(BaseModel):
     warning: bool
 
 
-@app.post("/api/convert", response_model=ConvertResponse)
-async def convert(req: ConvertRequest):
+class SitePageInfo(BaseModel):
+    url: str
+    title: str
+
+
+class SiteInfo(BaseModel):
+    siteTitle: str
+    pages: list[SitePageInfo]
+
+
+class SiteDetectedResponse(BaseModel):
+    site: SiteInfo
+
+
+class ConvertSiteRequest(BaseModel):
+    pages: list[SitePageInfo]
+    siteTitle: str
+
+
+class ConvertSiteResponse(BaseModel):
+    downloadUrl: str
+    expiresAt: str
+
+
+@app.post("/api/convert")
+async def convert(req: ConvertRequest) -> ConvertResponse | SiteDetectedResponse:
     try:
         html = await scrape_url(str(req.url))
     except Exception:
         raise HTTPException(status_code=400, detail="Could not load page")
+
+    pages = detect_site_pages(html, str(req.url))
+    if pages is not None:
+        site_title = extract_site_title(html, str(req.url))
+        return SiteDetectedResponse(
+            site=SiteInfo(
+                siteTitle=site_title,
+                pages=[SitePageInfo(url=p["url"], title=p["title"]) for p in pages],
+            )
+        )
 
     content = extract_content(html)
     if content is None:
@@ -54,9 +88,34 @@ async def convert(req: ConvertRequest):
     return ConvertResponse(downloadUrl=download_url, expiresAt=expires_at, warning=warning)
 
 
+@app.post("/api/convert-site", response_model=ConvertSiteResponse)
+async def convert_site(req: ConvertSiteRequest):
+    chapters = []
+    for page in req.pages:
+        try:
+            html = await scrape_url(page.url)
+            content = extract_content(html)
+            if content is None:
+                continue
+            chapters.append({"title": page.title, "html": content["html"], "base_url": page.url})
+        except Exception:
+            continue
+
+    if not chapters:
+        raise HTTPException(status_code=400, detail="No readable content found")
+
+    epub_bytes = build_site_epub(req.siteTitle, chapters)
+
+    try:
+        download_url, expires_at = upload_epub(epub_bytes, req.siteTitle)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Storage error, please try again")
+
+    return ConvertSiteResponse(downloadUrl=download_url, expiresAt=expires_at)
+
+
 @app.get("/api/files/{filename}")
 async def serve_file(filename: str):
-    # Prevent path traversal attacks
     safe = Path(filename).name
     path = LOCAL_STORAGE_DIR / safe
     if not path.exists():
