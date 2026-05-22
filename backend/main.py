@@ -1,6 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, HttpUrl
+
+from storage import LOCAL_STORAGE_DIR
 
 from scraper import scrape_url
 from extractor import extract_content
@@ -47,3 +50,13 @@ async def convert(req: ConvertRequest):
         raise HTTPException(status_code=500, detail="Storage error, please try again")
 
     return ConvertResponse(downloadUrl=download_url, expiresAt=expires_at, warning=warning)
+
+
+@app.get("/api/files/{filename}")
+async def serve_file(filename: str):
+    # Prevent path traversal attacks
+    safe = Path(filename).name
+    path = LOCAL_STORAGE_DIR / safe
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File not found or expired")
+    return FileResponse(path, media_type="application/epub+zip", filename=safe)
