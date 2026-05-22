@@ -454,3 +454,59 @@ body {
   color: var(--fg-muted);
   margin: 0;
 }
+
+/* ── SiteConfirmCard ─────────────────────────────────── */
+.site-confirm-title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--fg);
+  margin: 0 0 0.25rem;
+}
+
+.site-confirm-count {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  margin: 0 0 0.75rem;
+  font-family: var(--font-ui);
+}
+
+.site-page-list {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.site-page-list li {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  font-family: var(--font-ui);
+  padding: 0.2rem 0;
+  line-height: 1.4;
+}
+
+.site-confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.site-cancel-btn {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s;
+}
+
+.site-cancel-btn:hover {
+  color: var(--fg);
+}

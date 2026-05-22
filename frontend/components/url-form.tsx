@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { ResultCard } from "./result-card"
+import { SiteConfirmCard } from "./site-confirm-card"
 
 type ConvertResult = {
   downloadUrl: string
@@ -9,9 +10,14 @@ type ConvertResult = {
   warning: boolean
 }
 
+type SitePage = { url: string; title: string }
+type SiteInfo = { siteTitle: string; pages: SitePage[] }
+
 type State =
   | { status: "idle" }
   | { status: "converting" }
+  | { status: "site-detected"; site: SiteInfo }
+  | { status: "site-converting" }
   | { status: "done"; result: ConvertResult }
   | { status: "error"; message: string }
 
@@ -39,15 +45,43 @@ export function UrlForm() {
         return
       }
 
-      const result: ConvertResult = await res.json()
-      setState({ status: "done", result })
+      const data = await res.json()
+      if (data.site) {
+        setState({ status: "site-detected", site: data.site })
+        return
+      }
+
+      setState({ status: "done", result: data })
     } catch {
       setState({ status: "error", message: "Network error, please try again" })
     }
   }
 
-  // Called when the user clicks Download or Copy in the result card.
-  // Pulses the Convert button briefly, then resets the form after 2s.
+  async function handleConfirmSite() {
+    if (state.status !== "site-detected") return
+    const { site } = state
+    setState({ status: "site-converting" })
+
+    try {
+      const res = await fetch("/api/convert-site", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pages: site.pages, siteTitle: site.siteTitle }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        setState({ status: "error", message: err.detail || "Conversion failed" })
+        return
+      }
+
+      const result: ConvertResult = await res.json()
+      setState({ status: "done", result: { ...result, warning: false } })
+    } catch {
+      setState({ status: "error", message: "Network error, please try again" })
+    }
+  }
+
   function handleResultAction() {
     setFlash(true)
     setTimeout(() => setFlash(false), 600)
@@ -55,7 +89,8 @@ export function UrlForm() {
     resetTimer.current = setTimeout(() => setState({ status: "idle" }), 2200)
   }
 
-  const isConverting = state.status === "converting"
+  const isConverting =
+    state.status === "converting" || state.status === "site-converting"
 
   return (
     <div className="form-wrap w-full">
@@ -88,6 +123,15 @@ export function UrlForm() {
 
       {state.status === "error" && (
         <p className="error-msg">{state.message}</p>
+      )}
+
+      {state.status === "site-detected" && (
+        <SiteConfirmCard
+          siteTitle={state.site.siteTitle}
+          pages={state.site.pages}
+          onConfirm={handleConfirmSite}
+          onCancel={() => setState({ status: "idle" })}
+        />
       )}
 
       {state.status === "done" && (
