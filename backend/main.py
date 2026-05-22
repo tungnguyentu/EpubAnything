@@ -44,7 +44,7 @@ async def convert(req: ConvertRequest):
         raise HTTPException(status_code=400, detail="No readable content found")
 
     warning = content["word_count"] < 200
-    epub_bytes = build_epub(content["title"], content["author"], content["text"])
+    epub_bytes = build_epub(content["title"], content["author"], content["html"], str(req.url))
 
     try:
         download_url, expires_at = upload_epub(epub_bytes, content["title"])
