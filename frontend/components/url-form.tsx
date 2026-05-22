@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ResultCard } from "./result-card"
 
 type ConvertResult = {
@@ -18,9 +18,12 @@ type State =
 export function UrlForm() {
   const [url, setUrl] = useState("")
   const [state, setState] = useState<State>({ status: "idle" })
+  const [flash, setFlash] = useState(false)
+  const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (resetTimer.current) clearTimeout(resetTimer.current)
     setState({ status: "converting" })
 
     try {
@@ -43,8 +46,19 @@ export function UrlForm() {
     }
   }
 
+  // Called when the user clicks Download or Copy in the result card.
+  // Pulses the Convert button briefly, then resets the form after 2s.
+  function handleResultAction() {
+    setFlash(true)
+    setTimeout(() => setFlash(false), 600)
+    if (resetTimer.current) clearTimeout(resetTimer.current)
+    resetTimer.current = setTimeout(() => setState({ status: "idle" }), 2200)
+  }
+
+  const isConverting = state.status === "converting"
+
   return (
-    <div className="w-full">
+    <div className="form-wrap w-full">
       <form onSubmit={handleSubmit} className="flex gap-2">
         <input
           type="url"
@@ -52,23 +66,33 @@ export function UrlForm() {
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://example.com/article"
           required
-          disabled={state.status === "converting"}
-          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          disabled={isConverting}
+          className="url-input"
         />
         <button
           type="submit"
-          disabled={state.status === "converting"}
-          className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          disabled={isConverting}
+          className={`convert-btn${flash ? " success" : ""}`}
         >
-          {state.status === "converting" ? "Converting…" : "Convert"}
+          {isConverting ? (
+            <span className="dot-loader">
+              <span />
+              <span />
+              <span />
+            </span>
+          ) : (
+            "Convert"
+          )}
         </button>
       </form>
 
       {state.status === "error" && (
-        <p className="mt-4 text-sm text-red-600">{state.message}</p>
+        <p className="error-msg">{state.message}</p>
       )}
 
-      {state.status === "done" && <ResultCard result={state.result} />}
+      {state.status === "done" && (
+        <ResultCard result={state.result} onDownload={handleResultAction} />
+      )}
     </div>
   )
 }
