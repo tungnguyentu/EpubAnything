@@ -83,3 +83,36 @@ def _inline_css(soup: BeautifulSoup, base_url: str) -> str:
         return premailer.transform(wrapped)
     except Exception:
         return body_html
+
+
+def build_site_epub(site_title: str, chapters: list[dict]) -> bytes:
+    book = epub.EpubBook()
+    book.set_identifier("epubanything-site-" + site_title[:20].replace(" ", "-"))
+    book.set_title(site_title)
+    book.set_language("en")
+
+    epub_chapters = []
+    for i, ch in enumerate(chapters):
+        soup = BeautifulSoup(ch["html"], "html.parser")
+        for tag in soup.find_all(["script", "iframe", "nav", "header", "footer"]):
+            tag.decompose()
+        _embed_images(soup, ch["base_url"])
+        body_html = _inline_css(soup, ch["base_url"])
+
+        epub_ch = epub.EpubHtml(
+            title=ch["title"],
+            file_name=f"chapter_{i + 1:03d}.xhtml",
+            lang="en",
+        )
+        epub_ch.content = f"<h1>{ch['title']}</h1>{body_html}"
+        book.add_item(epub_ch)
+        epub_chapters.append(epub_ch)
+
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    book.spine = ["nav"] + epub_chapters
+    book.toc = tuple(epub_chapters)
+
+    buffer = io.BytesIO()
+    epub.write_epub(buffer, book, {})
+    return buffer.getvalue()
