@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-05-24
-**Active Feature:** feat-007 (next feature — not yet defined)
+**Active Feature:** feat-008 (next feature — not yet defined)
 
 ## Completed Features
 
@@ -13,10 +13,11 @@
 - [x] feat-004 — Scraper concurrency cap (Semaphore(5) in scraper.py)
 - [x] feat-005 — Payments & credits (Google OAuth, SQLite, PayPal 10-for-$3, credit gate on /api/convert-site, AuthBar + PayPal buttons)
 - [x] feat-006 — Privacy policy & terms of service pages + homepage footer links. Required for Google OAuth consent screen publishing. TypeScript clean. Commits 5911797..3450404.
+- [x] feat-007 — Google sign-in button (white bg, official G logo SVG) + /pricing page (Free & Credits tiers, guarantee strip, FAQ). Homepage footer pricing link. 57 tests pass, TypeScript clean. Commit 0abd8de.
 
 ## What's Next
 
-Define the next feature in `feature_list.json` feat-007 before starting work.
+Define the next feature in `feature_list.json` feat-008 before starting work.
 
 ## Baseline Evidence
 

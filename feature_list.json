@@ -50,9 +50,17 @@
     },
     {
       "id": "feat-007",
+      "name": "Google sign-in button and pricing page",
+      "description": "Replace plain text 'Sign in with Google' link with a proper Google-branded button (white bg, official G logo SVG). Add /pricing page with Free and Credits tiers, guarantee strip, and FAQ. Link pricing from homepage footer.",
+      "dependencies": ["feat-006"],
+      "status": "done",
+      "evidence": "frontend/components/auth-bar.tsx (google-signin-btn), frontend/app/pricing/page.tsx, globals.css pricing styles, homepage footer link. 57 tests pass, TypeScript clean. Commit 0abd8de."
+    },
+    {
+      "id": "feat-008",
       "name": "[NEXT] — add feature here",
       "description": "Replace with the next concrete feature to implement.",
-      "dependencies": ["feat-006"],
+      "dependencies": ["feat-007"],
       "status": "not-started",
       "evidence": ""
     }
