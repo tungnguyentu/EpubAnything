@@ -136,6 +136,19 @@ export default function Home() {
           ))}
         </dl>
       </section>
+
+      <footer className="w-full max-w-xl mt-16 px-1 text-center">
+        <div className="title-rule mb-6" />
+        <p className="body-text">
+          <Link href="/privacy" style={{ color: "var(--accent)" }} className="underline">
+            Privacy Policy
+          </Link>
+          {" · "}
+          <Link href="/terms" style={{ color: "var(--accent)" }} className="underline">
+            Terms of Service
+          </Link>
+        </p>
+      </footer>
     </main>
   )
 }
