@@ -58,8 +58,8 @@
     },
     {
       "id": "feat-008",
-      "name": "[NEXT] — add feature here",
-      "description": "Replace with the next concrete feature to implement.",
+      "name": "Admin site",
+      "description": "Password-protected /admin section in the Next.js app. ADMIN_SECRET env var gates a login form that sets a signed admin_session cookie. Sidebar layout with Dashboard (4 stat cards + recent users), Users (paginated table with inline credit edit), and Payments (read-only transaction log). Requires new transactions table in SQLite and record_transaction() call after each PayPal capture. Backend admin.py router with 5 endpoints, all protected by require_admin dependency.",
       "dependencies": ["feat-007"],
       "status": "not-started",
       "evidence": ""
