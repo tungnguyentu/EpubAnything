@@ -1,0 +1,44 @@
+{
+  "features": [
+    {
+      "id": "feat-001",
+      "name": "Single-page EPUB conversion",
+      "description": "Convert any article URL to a clean EPUB via /api/convert. Playwright scrapes, readability-lxml extracts, ebooklib builds.",
+      "dependencies": [],
+      "status": "done",
+      "evidence": "41 backend tests pass. Deployed at epubanything.com."
+    },
+    {
+      "id": "feat-002",
+      "name": "Multi-page site detection and EPUB",
+      "description": "Auto-detect course/docs nav structure, confirm page list with user, crawl all pages, build multi-chapter EPUB.",
+      "dependencies": ["feat-001"],
+      "status": "done",
+      "evidence": "site_detector.py, build_site_epub() in epub_builder.py, SiteConfirmCard, /api/convert-site. All tests pass."
+    },
+    {
+      "id": "feat-003",
+      "name": "SSE conversion progress",
+      "description": "Stream real-time 'Converting page N of M' progress via SSE during multi-page conversion. ProgressCard in frontend.",
+      "dependencies": ["feat-002"],
+      "status": "done",
+      "evidence": "_stream_site_conversion generator, ProgressCard component, SSE-aware tests. Commit fa2373c."
+    },
+    {
+      "id": "feat-004",
+      "name": "Scraper concurrency cap",
+      "description": "asyncio.Semaphore(5) in scraper.py prevents OOM when multiple users convert simultaneously.",
+      "dependencies": ["feat-003"],
+      "status": "done",
+      "evidence": "Commit 2b3c546. All 41 tests still pass."
+    },
+    {
+      "id": "feat-005",
+      "name": "[NEXT] — add feature here",
+      "description": "Replace with the next concrete feature to implement.",
+      "dependencies": ["feat-004"],
+      "status": "not-started",
+      "evidence": ""
+    }
+  ]
+}
