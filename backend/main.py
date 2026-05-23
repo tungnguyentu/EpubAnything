@@ -12,7 +12,7 @@ from extractor import extract_content
 from epub_builder import build_epub, build_site_epub
 from storage import upload_epub
 from site_detector import detect_site_pages, extract_site_title
-from database import init_db
+from database import init_db, deduct_credit
 from auth import router as auth_router, get_current_user
 from payments import router as payments_router
 
@@ -97,15 +97,21 @@ async def convert(req: ConvertRequest) -> ConvertResponse | SiteDetectedResponse
 
 
 @app.post("/api/convert-site")
-async def convert_site(req: ConvertSiteRequest):
+async def convert_site(req: ConvertSiteRequest, request: Request):
+    user = get_current_user(request)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Sign in to convert course sites")
+    if user["credits"] < 1:
+        raise HTTPException(status_code=402, detail="No credits remaining")
+
     return StreamingResponse(
-        _stream_site_conversion(req.pages, req.siteTitle),
+        _stream_site_conversion(req.pages, req.siteTitle, user["id"]),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
-async def _stream_site_conversion(pages, site_title):
+async def _stream_site_conversion(pages, site_title, user_id):
     chapters = []
     total = len(pages)
 
@@ -131,6 +137,10 @@ async def _stream_site_conversion(pages, site_title):
         download_url, expires_at = upload_epub(epub_bytes, site_title)
     except Exception:
         yield f"data: {json.dumps({'type': 'error', 'detail': 'Storage error, please try again'})}\n\n"
+        return
+
+    if not deduct_credit(user_id):
+        yield f"data: {json.dumps({'type': 'error', 'detail': 'Credit deduction failed'})}\n\n"
         return
 
     yield f"data: {json.dumps({'type': 'done', 'downloadUrl': download_url, 'expiresAt': expires_at})}\n\n"

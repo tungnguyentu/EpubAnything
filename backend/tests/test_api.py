@@ -116,6 +116,9 @@ def _parse_sse(text: str) -> list[dict]:
     return events
 
 
+AUTHED_USER = {"id": 1, "email": "test@example.com", "name": "Test", "credits": 5}
+
+
 async def test_convert_site_success():
     with (
         patch("main.scrape_url", new_callable=AsyncMock, return_value=PAGE_HTML),
@@ -123,6 +126,8 @@ async def test_convert_site_success():
             "main.upload_epub",
             return_value=("https://r2.example.com/site.epub", "2026-05-23T00:00:00Z"),
         ),
+        patch("main.get_current_user", return_value=AUTHED_USER),
+        patch("main.deduct_credit", return_value=True),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post("/api/convert-site", json={
@@ -146,6 +151,8 @@ async def test_convert_site_streams_progress():
             "main.upload_epub",
             return_value=("https://r2.example.com/site.epub", "2026-05-23T00:00:00Z"),
         ),
+        patch("main.get_current_user", return_value=AUTHED_USER),
+        patch("main.deduct_credit", return_value=True),
     ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post("/api/convert-site", json={
@@ -166,7 +173,10 @@ async def test_convert_site_streams_progress():
 
 
 async def test_convert_site_all_pages_fail():
-    with patch("main.scrape_url", new_callable=AsyncMock, side_effect=Exception("Timeout")):
+    with (
+        patch("main.scrape_url", new_callable=AsyncMock, side_effect=Exception("Timeout")),
+        patch("main.get_current_user", return_value=AUTHED_USER),
+    ):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             response = await client.post("/api/convert-site", json={
                 "siteTitle": "My Course",
@@ -178,3 +188,25 @@ async def test_convert_site_all_pages_fail():
     events = _parse_sse(response.text)
     error = next(e for e in events if e["type"] == "error")
     assert error["detail"] == "No readable content found"
+
+
+async def test_convert_site_requires_auth():
+    with patch("main.get_current_user", return_value=None):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert-site", json={
+                "siteTitle": "My Course",
+                "pages": [{"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"}],
+            })
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Sign in to convert course sites"
+
+
+async def test_convert_site_requires_credits():
+    with patch("main.get_current_user", return_value={**AUTHED_USER, "credits": 0}):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/convert-site", json={
+                "siteTitle": "My Course",
+                "pages": [{"url": "https://example.com/vi/lesson-1", "title": "Lesson 1"}],
+            })
+    assert response.status_code == 402
+    assert response.json()["detail"] == "No credits remaining"
