@@ -88,6 +88,23 @@ def deduct_credit(user_id: int) -> bool:
         return result.rowcount == 1
 
 
+def add_credits_and_record_transaction(
+    user_id: int, amount_usd: float, credits: int, paypal_order_id: str
+) -> int:
+    """Atomically credits the user and records the transaction. Raises sqlite3.IntegrityError on duplicate paypal_order_id."""
+    with _connect() as conn:
+        conn.execute(
+            """
+            INSERT INTO transactions (user_id, amount_usd, credits_purchased, paypal_order_id)
+            VALUES (?, ?, ?, ?)
+            """,
+            (user_id, amount_usd, credits, paypal_order_id),
+        )
+        conn.execute("UPDATE users SET credits = credits + ? WHERE id = ?", (credits, user_id))
+        row = conn.execute("SELECT credits FROM users WHERE id = ?", (user_id,)).fetchone()
+        return row[0]
+
+
 def record_transaction(
     user_id: int, amount_usd: float, credits_purchased: int, paypal_order_id: str
 ) -> None:

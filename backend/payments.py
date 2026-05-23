@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from auth import get_current_user
-from database import add_credits, record_transaction
+from database import add_credits_and_record_transaction
 
 router = APIRouter()
 
@@ -101,6 +101,7 @@ async def capture(body: CaptureRequest, request: Request):
     completed = await _capture_order(body.orderId)
     if not completed:
         raise HTTPException(status_code=400, detail="Payment not completed")
-    new_balance = add_credits(user["id"], PACK_CREDITS)
-    record_transaction(user["id"], float(PACK_AMOUNT), PACK_CREDITS, body.orderId)
+    new_balance = add_credits_and_record_transaction(
+        user["id"], float(PACK_AMOUNT), PACK_CREDITS, body.orderId
+    )
     return {"credits": new_balance}

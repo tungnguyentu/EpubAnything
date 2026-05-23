@@ -110,6 +110,17 @@ def test_set_user_credits_returns_none_for_missing():
     assert set_user_credits(9999, 10) is None
 
 
+def test_add_credits_and_record_transaction_atomic():
+    from database import upsert_user, add_credits_and_record_transaction, get_credits, list_transactions
+    user = upsert_user("g1", "a@example.com", "Alice")
+    balance = add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-ATOMIC")
+    assert balance == 10
+    assert get_credits(user["id"]) == 10
+    txns = list_transactions(page=1)
+    assert txns["total"] == 1
+    assert txns["items"][0]["paypal_order_id"] == "ORDER-ATOMIC"
+
+
 def test_record_transaction_rejects_duplicate_order_id():
     import sqlite3
     from database import upsert_user, record_transaction
