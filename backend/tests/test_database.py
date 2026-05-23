@@ -19,17 +19,17 @@ def test_upsert_user_updates_existing():
 
 
 def test_add_credits_returns_new_balance():
-    from database import upsert_user, add_credits, get_credits
+    from database import upsert_user, add_credits_and_record_transaction, get_credits
     user = upsert_user("google_123", "a@example.com", "Alice")
-    balance = add_credits(user["id"], 10)
+    balance = add_credits_and_record_transaction(user["id"], 1.00, 10, "ORDER-BAL")
     assert balance == 10
     assert get_credits(user["id"]) == 10
 
 
 def test_deduct_credit_succeeds_when_balance_positive():
-    from database import upsert_user, add_credits, deduct_credit, get_credits
+    from database import upsert_user, add_credits_and_record_transaction, deduct_credit, get_credits
     user = upsert_user("google_123", "a@example.com", "Alice")
-    add_credits(user["id"], 1)
+    add_credits_and_record_transaction(user["id"], 1.00, 1, "ORDER-DEDUCT")
     assert deduct_credit(user["id"]) is True
     assert get_credits(user["id"]) == 0
 
@@ -46,9 +46,9 @@ def test_get_user_by_id_returns_none_for_missing():
 
 
 def test_record_transaction_and_list():
-    from database import upsert_user, record_transaction, list_transactions
+    from database import upsert_user, add_credits_and_record_transaction, list_transactions
     user = upsert_user("g1", "a@example.com", "Alice")
-    record_transaction(user["id"], 3.00, 10, "ORDER-1")
+    add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-1")
     result = list_transactions(page=1)
     assert result["total"] == 1
     assert result["page"] == 1
@@ -60,10 +60,10 @@ def test_record_transaction_and_list():
 
 
 def test_list_transactions_pagination():
-    from database import upsert_user, record_transaction, list_transactions
+    from database import upsert_user, add_credits_and_record_transaction, list_transactions
     user = upsert_user("g1", "a@example.com", "Alice")
     for i in range(25):
-        record_transaction(user["id"], 3.00, 10, f"ORDER-{i}")
+        add_credits_and_record_transaction(user["id"], 3.00, 10, f"ORDER-{i}")
     page1 = list_transactions(page=1)
     page2 = list_transactions(page=2)
     assert page1["total"] == 25
@@ -72,15 +72,15 @@ def test_list_transactions_pagination():
 
 
 def test_get_stats():
-    from database import upsert_user, record_transaction, get_stats
+    from database import upsert_user, add_credits_and_record_transaction, get_stats
     user = upsert_user("g1", "a@example.com", "Alice")
     stats = get_stats()
     assert stats["total_users"] == 1
     assert stats["total_revenue"] == 0.0
     assert stats["paying_users"] == 0
     assert stats["signups_today"] == 1
-    record_transaction(user["id"], 3.00, 10, "ORDER-1")
-    record_transaction(user["id"], 3.00, 10, "ORDER-2")
+    add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-1")
+    add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-2")
     stats2 = get_stats()
     assert stats2["total_revenue"] == 6.0
     assert stats2["paying_users"] == 1
@@ -121,10 +121,10 @@ def test_add_credits_and_record_transaction_atomic():
     assert txns["items"][0]["paypal_order_id"] == "ORDER-ATOMIC"
 
 
-def test_record_transaction_rejects_duplicate_order_id():
+def test_add_credits_and_record_transaction_rejects_duplicate_order_id():
     import sqlite3
-    from database import upsert_user, record_transaction
+    from database import upsert_user, add_credits_and_record_transaction
     user = upsert_user("g1", "a@example.com", "Alice")
-    record_transaction(user["id"], 3.00, 10, "ORDER-DUP")
+    add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-DUP")
     with pytest.raises(sqlite3.IntegrityError):
-        record_transaction(user["id"], 3.00, 10, "ORDER-DUP")
+        add_credits_and_record_transaction(user["id"], 3.00, 10, "ORDER-DUP")

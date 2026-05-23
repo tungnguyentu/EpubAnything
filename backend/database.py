@@ -68,17 +68,6 @@ def get_credits(user_id: int) -> int:
         return row["credits"] if row else 0
 
 
-def add_credits(user_id: int, amount: int) -> int:
-    with _connect() as conn:
-        conn.execute(
-            "UPDATE users SET credits = credits + ? WHERE id = ?", (amount, user_id)
-        )
-        row = conn.execute(
-            "SELECT credits FROM users WHERE id = ?", (user_id,)
-        ).fetchone()
-        return row["credits"]
-
-
 def deduct_credit(user_id: int) -> bool:
     with _connect() as conn:
         result = conn.execute(
@@ -103,19 +92,6 @@ def add_credits_and_record_transaction(
         conn.execute("UPDATE users SET credits = credits + ? WHERE id = ?", (credits, user_id))
         row = conn.execute("SELECT credits FROM users WHERE id = ?", (user_id,)).fetchone()
         return row[0]
-
-
-def record_transaction(
-    user_id: int, amount_usd: float, credits_purchased: int, paypal_order_id: str
-) -> None:
-    with _connect() as conn:
-        conn.execute(
-            """
-            INSERT INTO transactions (user_id, amount_usd, credits_purchased, paypal_order_id)
-            VALUES (?, ?, ?, ?)
-            """,
-            (user_id, amount_usd, credits_purchased, paypal_order_id),
-        )
 
 
 def list_transactions(page: int = 1) -> dict:
