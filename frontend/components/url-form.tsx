@@ -24,7 +24,11 @@ type State =
   | { status: "done"; result: ConvertResult }
   | { status: "error"; message: string }
 
-export function UrlForm() {
+type User = { id: number; email: string; name: string; credits: number }
+
+type Props = { user: User | null }
+
+export function UrlForm({ user }: Props) {
   const [url, setUrl] = useState("")
   const [state, setState] = useState<State>({ status: "idle" })
   const [flash, setFlash] = useState(false)
@@ -62,6 +66,16 @@ export function UrlForm() {
 
   async function handleConfirmSite() {
     if (state.status !== "site-detected") return
+
+    if (!user) {
+      setState({ status: "error", message: "Sign in with Google to convert course sites" })
+      return
+    }
+    if (user.credits < 1) {
+      setState({ status: "error", message: "No credits remaining — buy a pack to continue" })
+      return
+    }
+
     const { site } = state
 
     setState({
@@ -73,6 +87,7 @@ export function UrlForm() {
     const res = await fetch("/api/convert-site", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ pages: site.pages, siteTitle: site.siteTitle }),
     })
 

@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { UrlForm } from "@/components/url-form"
+import { AppShell } from "@/components/app-shell"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 const faqs = [
@@ -98,7 +98,7 @@ export default function Home() {
           <div className="title-rule" />
           <p className="subtitle">Convert any webpage to EPUB for your e-reader</p>
         </header>
-        <UrlForm />
+        <AppShell />
       </div>
 
       <section className="w-full max-w-xl mt-16 px-1 text-center">
