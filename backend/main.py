@@ -14,6 +14,7 @@ from storage import upload_epub
 from site_detector import detect_site_pages, extract_site_title
 from database import init_db
 from auth import router as auth_router, get_current_user
+from payments import router as payments_router
 
 app = FastAPI()
 
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(payments_router)
 
 
 @app.on_event("startup")
