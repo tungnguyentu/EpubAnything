@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_upsert_user_creates():
     from database import upsert_user, get_user_by_id
     user = upsert_user("google_123", "a@example.com", "Alice")
@@ -105,3 +108,12 @@ def test_set_user_credits():
 def test_set_user_credits_returns_none_for_missing():
     from database import set_user_credits
     assert set_user_credits(9999, 10) is None
+
+
+def test_record_transaction_rejects_duplicate_order_id():
+    import sqlite3
+    from database import upsert_user, record_transaction
+    user = upsert_user("g1", "a@example.com", "Alice")
+    record_transaction(user["id"], 3.00, 10, "ORDER-DUP")
+    with pytest.raises(sqlite3.IntegrityError):
+        record_transaction(user["id"], 3.00, 10, "ORDER-DUP")

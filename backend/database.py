@@ -30,7 +30,7 @@ def init_db() -> None:
                 user_id           INTEGER NOT NULL REFERENCES users(id),
                 amount_usd        REAL NOT NULL,
                 credits_purchased INTEGER NOT NULL,
-                paypal_order_id   TEXT NOT NULL,
+                paypal_order_id   TEXT NOT NULL UNIQUE,
                 created_at        DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -102,6 +102,7 @@ def record_transaction(
 
 
 def list_transactions(page: int = 1) -> dict:
+    page = max(1, page)
     offset = (page - 1) * PAGE_SIZE
     with _connect() as conn:
         total = conn.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
@@ -140,6 +141,7 @@ def get_stats() -> dict:
 
 
 def list_users(page: int = 1) -> dict:
+    page = max(1, page)
     offset = (page - 1) * PAGE_SIZE
     with _connect() as conn:
         total = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
@@ -162,5 +164,8 @@ def set_user_credits(user_id: int, credits: int) -> dict | None:
         )
         if result.rowcount == 0:
             return None
-        row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
+        row = conn.execute(
+            "SELECT id, email, name, credits, created_at FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
         return dict(row)
