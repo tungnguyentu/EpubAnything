@@ -34,9 +34,17 @@
     },
     {
       "id": "feat-005",
+      "name": "Payments & credits",
+      "description": "Gate multi-page course EPUB behind a credit system. Google OAuth login, SQLite user/credit storage, PayPal Orders API v2 (10 credits for $3), 401/402 gate on /api/convert-site, frontend AuthBar + PayPal buttons.",
+      "dependencies": ["feat-004"],
+      "status": "done",
+      "evidence": "database.py, auth.py, payments.py, main.py gating, frontend AppShell/AuthBar/UrlForm. 57 tests pass. Commits f4c5769..d51e0e6."
+    },
+    {
+      "id": "feat-006",
       "name": "[NEXT] — add feature here",
       "description": "Replace with the next concrete feature to implement.",
-      "dependencies": ["feat-004"],
+      "dependencies": ["feat-005"],
       "status": "not-started",
       "evidence": ""
     }
