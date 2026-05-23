@@ -3,7 +3,7 @@
 ## Current State
 
 **Last Updated:** 2026-05-24
-**Active Feature:** feat-008 (next feature — not yet defined)
+**Active Feature:** feat-008 (done)
 
 ## Completed Features
 
@@ -14,10 +14,11 @@
 - [x] feat-005 — Payments & credits (Google OAuth, SQLite, PayPal 10-for-$3, credit gate on /api/convert-site, AuthBar + PayPal buttons)
 - [x] feat-006 — Privacy policy & terms of service pages + homepage footer links. Required for Google OAuth consent screen publishing. TypeScript clean. Commits 5911797..3450404.
 - [x] feat-007 — Google sign-in button (white bg, official G logo SVG) + /pricing page (Free & Credits tiers, guarantee strip, FAQ). Homepage footer pricing link. 57 tests pass, TypeScript clean. Commit 0abd8de.
+- [x] feat-008 — Admin site (/admin with sidebar, login, dashboard, users w/ credit editing, payments log. transactions table. 74+ tests pass. TypeScript clean.)
 
 ## What's Next
 
-Define the next feature in `feature_list.json` feat-008 before starting work.
+feat-008 is complete. Define feat-009 in `feature_list.json` before starting the next feature.
 
 ## Baseline Evidence
 
