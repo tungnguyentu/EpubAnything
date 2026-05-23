@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
@@ -12,15 +12,25 @@ from extractor import extract_content
 from epub_builder import build_epub, build_site_epub
 from storage import upload_epub
 from site_detector import detect_site_pages, extract_site_title
+from database import init_db
+from auth import router as auth_router, get_current_user
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["POST", "OPTIONS"],
+    allow_methods=["POST", "GET", "OPTIONS"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
+
+app.include_router(auth_router)
+
+
+@app.on_event("startup")
+async def startup():
+    init_db()
 
 
 class ConvertRequest(BaseModel):
