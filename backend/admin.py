@@ -1,9 +1,10 @@
+import hmac
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
 from itsdangerous import BadSignature, SignatureExpired, TimestampSigner
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from database import get_stats, list_transactions, list_users, set_user_credits
 
@@ -15,6 +16,7 @@ ADMIN_COOKIE_NAME = "admin_session"
 ADMIN_COOKIE_MAX_AGE = 60 * 60 * 24  # 24 hours
 
 _signer = TimestampSigner(SESSION_SECRET, salt="admin")
+_is_prod = os.environ.get("ENV", "production") != "development"
 
 
 def require_admin(request: Request) -> None:
@@ -32,12 +34,12 @@ class LoginRequest(BaseModel):
 
 
 class SetCreditsRequest(BaseModel):
-    credits: int
+    credits: int = Field(ge=0)
 
 
 @router.post("/api/admin/login")
 async def admin_login(body: LoginRequest):
-    if not ADMIN_SECRET or body.secret != ADMIN_SECRET:
+    if not ADMIN_SECRET or not hmac.compare_digest(body.secret, ADMIN_SECRET):
         raise HTTPException(status_code=401, detail="Invalid password")
     token = _signer.sign("admin").decode()
     response = JSONResponse({"ok": True})
@@ -46,6 +48,7 @@ async def admin_login(body: LoginRequest):
         token,
         httponly=True,
         samesite="lax",
+        secure=_is_prod,
         max_age=ADMIN_COOKIE_MAX_AGE,
     )
     return response
