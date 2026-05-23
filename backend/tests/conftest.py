@@ -7,6 +7,7 @@ os.environ.setdefault("SESSION_SECRET", "test-session-secret-key-32-chars!!")
 os.environ.setdefault("PAYPAL_CLIENT_ID", "test-paypal-client")
 os.environ.setdefault("PAYPAL_CLIENT_SECRET", "test-paypal-secret")
 os.environ.setdefault("PAYPAL_MODE", "sandbox")
+os.environ.setdefault("ADMIN_SECRET", "test-admin-secret")
 
 import pytest
 
