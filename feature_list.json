@@ -42,9 +42,17 @@
     },
     {
       "id": "feat-006",
+      "name": "Privacy policy, terms of service, and Google OAuth publish",
+      "description": "Add /privacy and /terms static pages matching site style. Add footer links on homepage. Required for publishing Google OAuth consent screen without a full review.",
+      "dependencies": ["feat-005"],
+      "status": "done",
+      "evidence": "frontend/app/privacy/page.tsx, frontend/app/terms/page.tsx, homepage footer links. TypeScript clean. Commits 5911797..3450404."
+    },
+    {
+      "id": "feat-007",
       "name": "[NEXT] — add feature here",
       "description": "Replace with the next concrete feature to implement.",
-      "dependencies": ["feat-005"],
+      "dependencies": ["feat-006"],
       "status": "not-started",
       "evidence": ""
     }

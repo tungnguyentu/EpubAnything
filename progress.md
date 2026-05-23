@@ -2,8 +2,8 @@
 
 ## Current State
 
-**Last Updated:** 2026-05-23
-**Active Feature:** feat-006 (next feature — not yet defined)
+**Last Updated:** 2026-05-24
+**Active Feature:** feat-007 (next feature — not yet defined)
 
 ## Completed Features
 
@@ -12,10 +12,11 @@
 - [x] feat-003 — SSE conversion progress (StreamingResponse, ProgressCard, SSE stream reader in frontend)
 - [x] feat-004 — Scraper concurrency cap (Semaphore(5) in scraper.py)
 - [x] feat-005 — Payments & credits (Google OAuth, SQLite, PayPal 10-for-$3, credit gate on /api/convert-site, AuthBar + PayPal buttons)
+- [x] feat-006 — Privacy policy & terms of service pages + homepage footer links. Required for Google OAuth consent screen publishing. TypeScript clean. Commits 5911797..3450404.
 
 ## What's Next
 
-Define the next feature in `feature_list.json` feat-006 before starting work.
+Define the next feature in `feature_list.json` feat-007 before starting work.
 
 ## Baseline Evidence
 
