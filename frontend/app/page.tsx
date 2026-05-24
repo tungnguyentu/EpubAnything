@@ -97,6 +97,17 @@ export default function Home() {
           </div>
           <div className="title-rule" />
           <p className="subtitle">Convert any webpage to EPUB for your e-reader</p>
+          <nav className="mt-3 flex justify-center gap-4 text-sm">
+            <Link href="/pricing" style={{ color: "var(--accent)" }} className="underline">
+              Pricing
+            </Link>
+            <Link href="/privacy" style={{ color: "var(--accent)" }} className="underline">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" style={{ color: "var(--accent)" }} className="underline">
+              Terms of Service
+            </Link>
+          </nav>
         </header>
         <AppShell />
       </div>
@@ -137,22 +148,6 @@ export default function Home() {
         </dl>
       </section>
 
-      <footer className="w-full max-w-xl mt-16 px-1 text-center">
-        <div className="title-rule mb-6" />
-        <p className="body-text">
-          <Link href="/pricing" style={{ color: "var(--accent)" }} className="underline">
-            Pricing
-          </Link>
-          {" · "}
-          <Link href="/privacy" style={{ color: "var(--accent)" }} className="underline">
-            Privacy Policy
-          </Link>
-          {" · "}
-          <Link href="/terms" style={{ color: "var(--accent)" }} className="underline">
-            Terms of Service
-          </Link>
-        </p>
-      </footer>
     </main>
   )
 }
