@@ -1,5 +1,5 @@
 # Session Handoff
-<!-- Generated: 2026-05-24T04:30:53.597Z | Branch: master | Commit: fa823b9 -->
+<!-- Generated: 2026-05-25T03:50:32.167Z | Branch: master | Commit: cbd265e -->
 
 ## Current Objective
 - Goal:
@@ -15,12 +15,13 @@
 ## Verification Evidence
 | Check | Status |
 |---|---|
-| Features passing | ✅ 0/8 |
+| Features passing | ✅ 0/9 |
 
 ## Files Changed
-**Branch:** `master` — **Last commit:** `fa823b9` — fix: remove dead code add_credits/record_transaction, document env vars
+**Branch:** `master` — **Last commit:** `cbd265e` — fix: remove duplicate h1 in PDF EPUBs, fix single-size PDF heading map
 
-- (no uncommitted changes detected)
+- progress.md
+- session-handoff.md
 
 ## Decisions Made
 - (fill in: architectural choices made and why)
