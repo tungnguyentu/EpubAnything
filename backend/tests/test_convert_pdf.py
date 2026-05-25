@@ -70,3 +70,13 @@ async def test_convert_pdf_storage_failure():
             )
     assert response.status_code == 500
     assert response.json()["detail"] == "Storage error, please try again"
+
+
+async def test_convert_pdf_wrong_mime_with_pdf_extension():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/convert-pdf",
+            files={"file": ("doc.pdf", b"<html>not a pdf</html>", "text/html")},
+        )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "File must be a PDF"

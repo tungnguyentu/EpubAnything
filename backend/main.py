@@ -154,7 +154,7 @@ _MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB
 
 @app.post("/api/convert-pdf")
 async def convert_pdf(file: UploadFile = File(...)) -> ConvertResponse:
-    if file.content_type != "application/pdf" and not (file.filename or "").endswith(".pdf"):
+    if file.content_type != "application/pdf" or not (file.filename or "").endswith(".pdf"):
         raise HTTPException(status_code=400, detail="File must be a PDF")
 
     data = await file.read()
