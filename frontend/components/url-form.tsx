@@ -29,10 +29,19 @@ type User = { id: number; email: string; name: string; credits: number }
 type Props = { user: User | null }
 
 export function UrlForm({ user }: Props) {
+  const [mode, setMode] = useState<"url" | "pdf">("url")
   const [url, setUrl] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [dragOver, setDragOver] = useState(false)
   const [state, setState] = useState<State>({ status: "idle" })
   const [flash, setFlash] = useState(false)
   const resetTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function switchMode(next: "url" | "pdf") {
+    setMode(next)
+    setState({ status: "idle" })
+    setFile(null)
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -59,6 +68,36 @@ export function UrlForm({ user }: Props) {
       }
 
       setState({ status: "done", result: data })
+    } catch {
+      setState({ status: "error", message: "Network error, please try again" })
+    }
+  }
+
+  async function handlePdfSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!file) return
+    if (resetTimer.current) clearTimeout(resetTimer.current)
+
+    if (file.size > 50 * 1024 * 1024) {
+      setState({ status: "error", message: "File too large (max 50 MB)" })
+      return
+    }
+
+    setState({ status: "converting" })
+
+    try {
+      const form = new FormData()
+      form.append("file", file)
+
+      const res = await fetch("/api/convert-pdf", { method: "POST", body: form })
+
+      if (!res.ok) {
+        const err = await res.json()
+        setState({ status: "error", message: err.detail || "Conversion failed" })
+        return
+      }
+
+      setState({ status: "done", result: await res.json() })
     } catch {
       setState({ status: "error", message: "Network error, please try again" })
     }
@@ -136,37 +175,113 @@ export function UrlForm({ user }: Props) {
     resetTimer.current = setTimeout(() => setState({ status: "idle" }), 2200)
   }
 
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const dropped = e.dataTransfer.files[0]
+    if (dropped?.type === "application/pdf" || dropped?.name.endsWith(".pdf")) {
+      setFile(dropped)
+      setState({ status: "idle" })
+    } else {
+      setState({ status: "error", message: "Please drop a PDF file" })
+    }
+  }
+
   const isConverting =
     state.status === "converting" || state.status === "site-converting"
 
   return (
     <div className="form-wrap w-full">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com/article"
-          required
-          disabled={isConverting}
-          className="url-input"
-        />
+      <div className="input-tabs">
         <button
-          type="submit"
-          disabled={isConverting}
-          className={`convert-btn${flash ? " success" : ""}`}
+          type="button"
+          className={`input-tab${mode === "url" ? " active" : ""}`}
+          onClick={() => switchMode("url")}
         >
-          {isConverting ? (
-            <span className="dot-loader">
-              <span />
-              <span />
-              <span />
-            </span>
-          ) : (
-            "Convert"
-          )}
+          URL
         </button>
-      </form>
+        <button
+          type="button"
+          className={`input-tab${mode === "pdf" ? " active" : ""}`}
+          onClick={() => switchMode("pdf")}
+        >
+          PDF
+        </button>
+      </div>
+
+      {mode === "url" && (
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://example.com/article"
+            required
+            disabled={isConverting}
+            className="url-input"
+          />
+          <button
+            type="submit"
+            disabled={isConverting}
+            className={`convert-btn${flash ? " success" : ""}`}
+          >
+            {isConverting ? (
+              <span className="dot-loader">
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : (
+              "Convert"
+            )}
+          </button>
+        </form>
+      )}
+
+      {mode === "pdf" && (
+        <form onSubmit={handlePdfSubmit} className="flex flex-col gap-2">
+          <div
+            className={`pdf-drop-zone${dragOver ? " drag-over" : ""}${file ? " has-file" : ""}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            {file ? (
+              <span className="pdf-filename">{file.name}</span>
+            ) : (
+              <span className="pdf-drop-hint">Drop PDF here or</span>
+            )}
+            <label className="pdf-browse-btn">
+              {file ? "Change file" : "Browse"}
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const f = e.target.files?.[0] ?? null
+                  setFile(f)
+                  setState({ status: "idle" })
+                }}
+              />
+            </label>
+          </div>
+          <button
+            type="submit"
+            disabled={isConverting || !file}
+            className={`convert-btn${flash ? " success" : ""}`}
+          >
+            {isConverting ? (
+              <span className="dot-loader">
+                <span />
+                <span />
+                <span />
+              </span>
+            ) : (
+              "Convert"
+            )}
+          </button>
+        </form>
+      )}
 
       {state.status === "error" && (
         <p className="error-msg">{state.message}</p>
