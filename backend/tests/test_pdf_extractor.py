@@ -69,8 +69,7 @@ def test_extract_pdf_fallback_title_when_no_large_font():
     pdf = _make_pdf(("uniform size text", 12))
     result = extract_pdf(pdf)
     assert result is not None
-    # No h1 possible with single size — title falls back to first text or "Untitled PDF"
-    assert result["title"] in ("uniform size text", "Untitled PDF")
+    assert result["title"] == "uniform size text"
 
 
 def test_extract_pdf_invalid_bytes_returns_none():

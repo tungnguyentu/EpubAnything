@@ -1,6 +1,11 @@
 import base64
+import html as _html
 
 import fitz  # pymupdf
+
+_BOLD_FLAG = 1 << 4   # pymupdf TEXT_FONT_BOLD
+_ITALIC_FLAG = 1 << 1  # pymupdf TEXT_FONT_ITALIC
+_ALLOWED_IMG_EXTS = {"png", "jpeg", "gif", "webp"}
 
 
 def extract_pdf(data: bytes) -> dict | None:
@@ -38,7 +43,7 @@ def extract_pdf(data: bytes) -> dict | None:
 
 
 def _build_size_map(doc) -> dict[int, str]:
-    """Map rounded font sizes to heading tags. Top 3 sizes → h1/h2/h3, rest → p."""
+    """Map rounded font sizes to heading tags. Top 2 sizes → h1/h2, rest → p."""
     sizes: set[int] = set()
     for page in doc:
         for block in page.get_text("dict")["blocks"]:
@@ -58,7 +63,7 @@ def _build_size_map(doc) -> dict[int, str]:
 def _append_image_block(block: dict, html_parts: list[str]) -> None:
     try:
         img_bytes = block["image"]
-        ext = block.get("ext", "png")
+        ext = block.get("ext", "png") if block.get("ext") in _ALLOWED_IMG_EXTS else "png"
         b64 = base64.b64encode(img_bytes).decode()
         html_parts.append(f'<img src="data:image/{ext};base64,{b64}">')
     except Exception:
@@ -67,12 +72,15 @@ def _append_image_block(block: dict, html_parts: list[str]) -> None:
 
 def _render_text_block(block: dict, size_map: dict[int, str]) -> tuple[str, str | None]:
     """Render a text block to an HTML element. Returns (html_fragment, title_text_or_None)."""
+    if "lines" not in block:
+        return "", None
+
     spans_html = []
     first_size = None
 
     for line in block["lines"]:
         for span in line["spans"]:
-            text = span["text"].strip()
+            text = _html.escape(span["text"].strip())
             if not text:
                 continue
             size = round(span["size"])
@@ -93,14 +101,15 @@ def _render_text_block(block: dict, size_map: dict[int, str]) -> tuple[str, str 
             s["text"].strip()
             for line in block["lines"]
             for s in line["spans"]
+            if s["text"].strip()
         ).strip()
 
     return fragment, title_text
 
 
 def _wrap_span(text: str, flags: int) -> str:
-    bold = bool(flags & 16)
-    italic = bool(flags & 2)
+    bold = bool(flags & _BOLD_FLAG)
+    italic = bool(flags & _ITALIC_FLAG)
     if bold and italic:
         return f"<strong><em>{text}</em></strong>"
     if bold:
