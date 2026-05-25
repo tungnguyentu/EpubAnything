@@ -66,10 +66,12 @@ def test_extract_pdf_heading_hierarchy():
 
 
 def test_extract_pdf_fallback_title_when_no_large_font():
+    # Single font size → size_map is empty → all text renders as <p>, no h1 → title fallback
     pdf = _make_pdf(("uniform size text", 12))
     result = extract_pdf(pdf)
     assert result is not None
-    assert result["title"] == "uniform size text"
+    assert result["title"] == "Untitled PDF"
+    assert "<p>" in result["html"]
 
 
 def test_extract_pdf_invalid_bytes_returns_none():

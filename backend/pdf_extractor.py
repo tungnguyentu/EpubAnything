@@ -16,9 +16,7 @@ def extract_pdf(data: bytes) -> dict | None:
         return None
 
     size_map = _build_size_map(doc)
-    if not size_map:
-        return None
-
+    # size_map may be empty (single font size) — that's fine, everything renders as <p>
     html_parts = []
     title = None
 
@@ -56,6 +54,9 @@ def _build_size_map(doc) -> dict[int, str]:
 
     # Only map the top 2 sizes to headings; everything else renders as <p>.
     # With 3 sizes, the smallest must be body text, not h3.
+    # With 1 size, nothing maps to headings — all text renders as <p>.
+    if len(sizes) < 2:
+        return {}
     tags = ["h1", "h2"]
     return {size: tags[i] for i, size in enumerate(sorted(sizes, reverse=True)[:2])}
 

@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+from bs4 import BeautifulSoup
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
@@ -166,7 +167,12 @@ async def convert_pdf(file: UploadFile = File(...)) -> ConvertResponse:
     if content is None:
         raise HTTPException(status_code=400, detail="No readable text found in PDF")
 
-    epub_bytes = build_epub(content["title"], "", content["html"], "")
+    # pdf_extractor already emits the title as <h1>; build_epub prepends another one, so strip it here
+    _soup = BeautifulSoup(content["html"], "html.parser")
+    _first_h1 = _soup.find("h1")
+    if _first_h1:
+        _first_h1.decompose()
+    epub_bytes = build_epub(content["title"], "", str(_soup), "")
 
     try:
         download_url, expires_at = upload_epub(epub_bytes, content["title"])
