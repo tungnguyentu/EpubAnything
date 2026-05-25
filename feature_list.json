@@ -69,7 +69,8 @@
       "name": "PDF to EPUB conversion",
       "description": "Upload a PDF file and receive a downloadable EPUB. Format preserved best-effort via pymupdf: heading hierarchy (font-size), bold/italic (font flags), embedded images. Free, no auth required. New pdf_extractor.py module + /api/convert-pdf endpoint + PDF tab in url-form.tsx.",
       "dependencies": ["feat-001"],
-      "status": "not-started"
+      "status": "done",
+      "evidence": "pdf_extractor.py (pymupdf, HTML-escaped, guarded), /api/convert-pdf endpoint (87 tests pass), url-form.tsx PDF tab + CSS. TypeScript clean."
     }
   ]
 }
