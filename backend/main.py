@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, HttpUrl
@@ -16,6 +16,7 @@ from database import init_db, deduct_credit
 from auth import router as auth_router, get_current_user
 from payments import router as payments_router
 from admin import router as admin_router
+from pdf_extractor import extract_pdf
 
 app = FastAPI()
 
@@ -146,6 +147,33 @@ async def _stream_site_conversion(pages, site_title, user_id):
         return
 
     yield f"data: {json.dumps({'type': 'done', 'downloadUrl': download_url, 'expiresAt': expires_at})}\n\n"
+
+
+_MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB
+
+
+@app.post("/api/convert-pdf")
+async def convert_pdf(file: UploadFile = File(...)) -> ConvertResponse:
+    if file.content_type != "application/pdf" and not (file.filename or "").endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="File must be a PDF")
+
+    data = await file.read()
+
+    if len(data) > _MAX_PDF_BYTES:
+        raise HTTPException(status_code=400, detail="File too large (max 50 MB)")
+
+    content = extract_pdf(data)
+    if content is None:
+        raise HTTPException(status_code=400, detail="No readable text found in PDF")
+
+    epub_bytes = build_epub(content["title"], "", content["html"], "")
+
+    try:
+        download_url, expires_at = upload_epub(epub_bytes, content["title"])
+    except Exception:
+        raise HTTPException(status_code=500, detail="Storage error, please try again")
+
+    return ConvertResponse(downloadUrl=download_url, expiresAt=expires_at, warning=False)
 
 
 @app.get("/api/files/{filename}")
